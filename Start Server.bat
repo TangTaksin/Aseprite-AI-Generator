@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Local AI Generator - Simplified Setup Script
+:: Local AI Generator - Optimized Setup & Run Script
 :: =====================================================
 
 echo.
@@ -10,106 +10,102 @@ echo    Local AI Generator for Aseprite - Auto Setup
 echo ========================================================
 echo.
 
-:: Get the directory where this batch file is located
+:: 🔒 ป้องกันปัญหา Path มีช่องว่าง
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
 echo Current directory: %SCRIPT_DIR%
 
-:: Check if required files exist
+:: [1/4] Check required files
 echo [1/4] Checking required files...
 if not exist "startup_script.py" (
-    echo ✗ startup_script.py not found in current directory
-    echo Please ensure all files are in the same folder
+    echo [ERROR] startup_script.py not found.
     pause
     exit /b 1
 )
 
 if not exist "sd_server.py" (
     if exist "paste.txt" (
-        echo Found paste.txt - copying to sd_server.py...
-        copy "paste.txt" "sd_server.py" >nul 2>&1
-        echo ✓ Created sd_server.py from paste.txt
+        echo Found paste.txt - renaming to sd_server.py...
+        move /y "paste.txt" "sd_server.py" >nul 2>&1
+        echo [OK] Created sd_server.py
     ) else (
-        echo ✗ Neither sd_server.py nor paste.txt found
+        echo [ERROR] sd_server.py not found.
         pause
         exit /b 1
     )
 ) else (
-    echo ✓ sd_server.py found
+    echo [OK] sd_server.py found
 )
 
-:: Check if Python is installed
+:: [2/4] Check Python installation & version (AI libs require 3.10+)
 echo [2/4] Checking Python installation...
 python --version >nul 2>&1
-if %errorlevel% equ 0 (
-    echo ✓ Python is already installed
-    python --version
-) else (
-    echo ✗ Python not found. 
-    echo.
-    echo PLEASE INSTALL PYTHON MANUALLY:
-    echo 1. Go to https://python.org
-    echo 2. Download Python 3.8 or newer
-    echo 3. During installation, CHECK "Add Python to PATH"
-    echo 4. Restart your computer after installation
-    echo 5. Run this script again
-    echo.
+if %errorlevel% neq 0 (
+    echo [ERROR] Python not found in PATH.
+    echo Please install Python 3.10+ from https://python.org
+    echo IMPORTANT: Check "Add Python to PATH" during install.
     pause
     exit /b 1
 )
 
-:: Create virtual environment
+:: ตรวจสอบเวอร์ชัน Python อย่างปลอดภัยผ่าน Python เอง
+python -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [WARN] Python 3.10+ is required for PyTorch/Diffusers.
+    echo Found: 
+    python --version
+    echo Installation may fail. Please upgrade Python.
+    pause
+    exit /b 1
+)
+echo [OK] Python version compatible
+
+:: [3/4] Virtual Environment
 echo [3/4] Setting up virtual environment...
 if exist "venv\Scripts\activate.bat" (
-    echo ✓ Virtual environment already exists
+    echo [OK] Virtual environment exists
 ) else (
-    echo Creating virtual environment...
+    echo Creating venv...
     python -m venv venv
-    if %errorlevel% neq 0 (
-        echo ✗ Failed to create virtual environment
-        echo Try running as Administrator
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to create venv. Try running as Administrator.
         pause
         exit /b 1
     )
-    echo ✓ Virtual environment created
+    echo [OK] Virtual environment created
 )
 
-:: Create necessary directories
-echo [4/4] Setting up directories...
+:: [4/4] Directories
+echo [4/4] Creating directories...
 if not exist "loras" mkdir loras
 if not exist "models" mkdir models
-echo ✓ Directories created
+echo [OK] Directories ready
 
 echo.
 echo ========================================================
-echo              Basic Setup Complete!
+echo              Setup Complete! Starting Server...
 echo ========================================================
 echo.
-echo Now starting Python setup and server...
-echo Python will handle dependency installation and server startup.
-echo.
 
-:: Activate virtual environment and start Python setup
 call venv\Scripts\activate.bat
-if %errorlevel% neq 0 (
-    echo ✗ Failed to activate virtual environment
+if !errorlevel! neq 0 (
+    echo [ERROR] Failed to activate venv.
     pause
     exit /b 1
 )
 
-echo ✓ Virtual environment activated
-echo Starting Python setup script...
+echo [INFO] Running startup_script.py...
+echo [INFO] First run will install dependencies. This may take a few minutes.
 echo.
 
-:: Let Python handle everything from here
+:: 💡 ใช้ python เพื่อแสดง progress ตอนติดตั้ง dependencies
+:: หลังติดตั้งเสร็จแล้ว หากต้องการรันแบบไม่มี Console ให้เปลี่ยนเป็น: pythonw startup_script.py
 python startup_script.py
 
-:: If we get here, the server has stopped
 echo.
 echo ========================================================
-echo                   SETUP/SERVER ENDED
+echo                   Server Stopped
 echo ========================================================
-echo.
 pause
 exit /b 0

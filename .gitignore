@@ -1,3 +1,23 @@
+# ==========================================
+# Project Specific Files
+# ==========================================
+# ไม่เก็บไฟล์โมเดลเพราะขนาดใหญ่เกินไป (GitHub รับได้ไม่เกิน 100MB)
+models/
+loras/
+*.safetensors
+*.ckpt
+
+# ไม่เก็บไฟล์ที่เจนออกมา (Privacy & Space)
+outputs/
+
+# ไม่เก็บ Cache ของ Hugging Face / Diffusers
+cache/
+.cache/
+
+# ไม่เก็บไฟล์คอนฟิกส่วนตัว (ถ้ามี)
+config.json
+.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -157,6 +177,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# เพิ่มส่วนนี้เพื่อรองรับ VENV_NAME ตามเวอร์ชัน Python (venv311, venv312, venv314, ฯลฯ)
+venv[0-9]*/
+venv3*/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -216,3 +240,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+*.ico
+desktop.ini
+Structure .txt
+Model_Setting.txt

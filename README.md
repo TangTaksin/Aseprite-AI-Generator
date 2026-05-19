@@ -1,6 +1,6 @@
-# 🎨 Local Aseprite AI Generator (LAAG)
+# 🎨Aseprite AI Generator (AAG)
 
-**Local Aseprite AI Generator (LAAG)** คือสะพานเชื่อมระหว่างพลังของ Generative AI (Stable Diffusion) เข้ากับเครื่องมือวาด Pixel Art Aseprite โปรแกรมนี้จะเปลี่ยนข้อความของคุณให้กลายเป็นสไปรท์ที่พร้อมใช้งานในเกมภายในไม่กี่วินาทีโดยประมวลผลผ่าน GPU ในเครื่องของคุณ 100%
+**Aseprite AI Generator (AAG)** คือสะพานเชื่อมระหว่างพลังของ Generative AI (Stable Diffusion) เข้ากับเครื่องมือวาด Pixel Art Aseprite โปรแกรมนี้จะเปลี่ยนข้อความของคุณให้กลายเป็นสไปรท์ที่พร้อมใช้งานในเกมภายในไม่กี่วินาทีโดยประมวลผลผ่าน GPU ในเครื่องของคุณ 100%
 
 ---
 

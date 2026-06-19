@@ -15,6 +15,16 @@
 
 ---
 
+## Generation Examples
+
+Here are some examples of what you can generate using AAG, along with the prompts and settings used.
+
+| Output Image | Prompt & Settings |
+| :---: | :--- |
+| <img src="sample/example_1.png" width="200" alt="Chibi Boa Profile"> | **Prompt:** `score_9, score_8_up, score_7_up, score_6_up, white background, 1girl, solo, portrait, looking at viewer, BREAK, Boa Hancock, large breasts, cleavage, off-shoulder dress, collarbone, long black hair, blue eyes, smug smile, gold earrings, one piece style, <lora:shirosu0011:1>, shirosu00, chibi` <br> **Negative Prompt:** `score_6, score_5, score_4, score_3, score_2, score_1, realistic, 3d, photorealistic, blurry, lowres, bad anatomy, bad hands, extra fingers, extra arms, extra legs, malformed limbs, deformed face, mutated hands, text, watermark, signature, duplicate, cropped, worst quality` <br> **Model:** [ponyDiffusionV6XL_v6StartWithThisOne.safetensors](https://civitai.com/models/257749/pony-diffusion-v6-xl) <br> **LoRA:** [Pony_shirosu0011.safetensors](https://civitai.com/models/493151/pixel-art-shirosu-artist-style-pony) (Strength: `1.0`) <br> **Settings:** Size: `64x64` \| Steps: `30` \| CFG: `7` \| Colors: `64` |
+
+---
+
 ## Repository Structure
 
 The project features a clean, modular design separating the backend server from the Aseprite frontend extension:
@@ -73,6 +83,27 @@ Before setting up the project, please ensure your system meets the following spe
 3. Restart Aseprite to complete the setup.
 
 Once installed, you can launch the plugin via **File > Local AI Generator**. Simply enter your prompt and click **Generate** to create pixel art directly on your canvas!
+
+---
+
+## Adding Custom Models & LoRAs
+
+You can easily expand AAG by adding custom models (Checkpoints) and style adapters (LoRAs) downloaded from platforms like Hugging Face or [Civitai](https://civitai.com/).
+
+### 1. Adding Custom Checkpoints
+Place your Stable Diffusion base models (e.g., SD 1.5, SDXL, or Pony/Illustrious-based checkpoints) inside the `models/` directory:
+```text
+models/
+```
+* **Naming Guide:** If your model is based on **SDXL** (or Pony/Illustrious), ensure the filename contains **`xl`** (case-insensitive) in it (e.g., `hyphoria_xl.safetensors`). This allows the server to automatically detect and load the correct pipeline architecture.
+* **Startup Selection:** After placing files in the `models/` folder, run `startup_script.py` (or double-click `Start Server.bat`). The script will automatically detect your local models and display them as options in the CLI menu.
+
+### 2. Adding Custom LoRAs
+Place your style LoRA adapters inside the `loras/` directory:
+```text
+loras/
+```
+* **Aseprite Integration:** Once files are placed, restart the Python server. The backend API will automatically scan this folder and make your custom LoRAs available in the dropdown selection inside the Aseprite Extension interface.
 
 ---
 

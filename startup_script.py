@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Local AI Generator for Aseprite
-Version 2.2
+Version 1.0.4
 """
 
 import sys
@@ -14,7 +14,7 @@ from pathlib import Path
 
 def print_banner():
     print("\n" + "=" * 60)
-    print("🎮 LOCAL AI GENERATOR FOR ASEPRITE v2.2")
+    print("🎮 LOCAL AI GENERATOR FOR ASEPRITE v1.0.4")
     print("=" * 60)
 
 

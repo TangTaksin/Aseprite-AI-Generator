@@ -19,6 +19,7 @@ class ImageProcessor:
     def load_segmentation_model(self) -> bool:
         """โหลดโมเดล BiRefNet สำหรับลบพื้นหลัง (Lazy Load)"""
         if self.segmentation_model and self.segmentation_processor:
+            self.segmentation_model.to(self.device)
             return True
 
         print("📦 Loading BiRefNet for background removal...")
@@ -57,6 +58,15 @@ class ImageProcessor:
         except Exception as e:
             print(f"❌ Error loading BiRefNet: {e}")
             return False
+
+    def offload_segmentation_model(self) -> None:
+        """Move BiRefNet to CPU to free VRAM after use"""
+        if self.segmentation_model is not None:
+            print("📤 Offloading BiRefNet to CPU...")
+            self.segmentation_model.to("cpu")
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            print("✅ BiRefNet offloaded to CPU")
 
     def remove_background(self, pil_image: Image.Image) -> Image.Image:
         """ใช้ BiRefNet ลบพื้นหลังของรูปภาพออก"""

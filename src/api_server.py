@@ -117,7 +117,7 @@ def health_check() -> Any:
         "vram_used_gb": round(vram_used, 2),
         "vram_total_gb": round(vram_total, 2),
         "cached_models": list(model_manager.model_cache.keys()),
-        "version": "2.4.1-rtx5070ti-pylance-fixed-modular",
+        "version": "1.0.4",
     })
 
 
@@ -183,7 +183,7 @@ def list_loras() -> Any:
 
 def main(default_model_to_load: Optional[str] = None, offline: bool = False) -> None:
     print("\n" + "=" * 60)
-    print("🎮 LOCAL AI GENERATOR SERVER v2.4.1 [MODULARIZED]")
+    print("🎮 LOCAL AI GENERATOR SERVER v1.0.4")
     print("=" * 60)
 
     os.makedirs("models", exist_ok=True)

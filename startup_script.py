@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Local AI Generator สำหรับ Aseprite
-เวอร์ชัน 2.2
+Local AI Generator for Aseprite
+Version 2.2
 """
 
 import sys
@@ -19,43 +19,43 @@ def print_banner():
 
 
 def print_section(title):
-    """พิมพ์หัวข้อส่วนต่างๆ ในรูปแบบที่กำหนด"""
+    """Print section headers in a standardized format"""
     print(f"\n📋 {title}")
     print("-" * (len(title) + 4))
 
 
 def check_python_version():
-    """ตรวจสอบว่าเวอร์ชันของ Python ตรงตามความต้องการหรือไม่ (เป้าหมายคือ 3.11.x)"""
+    """Verify that Python version meets requirements (Target: >= 3.8)"""
     version = sys.version_info
 
     if version.major < 3 or (version.major == 3 and version.minor < 8):
-        print("❌ เวอร์ชัน Python เก่าเกินไปสำหรับระบบนี้")
-        print(f"   เวอร์ชันปัจจุบัน: {version.major}.{version.minor}.{version.micro}")
-        print("   กรุณาใช้ Python 3.10.x (แนะนำ 3.10 ขึ้นไป)")
+        print("❌ Python version is too old for this system.")
+        print(f"   Current version: {version.major}.{version.minor}.{version.micro}")
+        print("   Please use Python 3.10.x or newer (recommended 3.10+)")
         return False
 
     if version.major == 3 and version.minor > 14:
         print(
-            f"⚠️ คำเตือน: คุณกำลังใช้ Python {version.major}.{version.minor}.{version.micro}"
+            f"⚠️ Warning: You are running Python {version.major}.{version.minor}.{version.micro}"
         )
-        print("   หากรันแล้วพบข้อผิดพลาด แนะนำให้ดาวน์เกรดกลับมาที่ 3.14")
+        print("   If you encounter any runtime issues, consider downgrading to 3.14 or lower.")
     else:
-        print(f"✅ Python {version.major}.{version.minor}.{version.micro} - ใช้งานได้")
+        print(f"✅ Python {version.major}.{version.minor}.{version.micro} - Compatible")
 
     return True
 
 
 def install_dependencies():
-    """ติดตั้งไลบรารีตามเวอร์ชันที่ทดสอบแล้วว่าใช้งานกับ Pony XL ได้ชัวร์"""
-    print("\n📋 กำลังจัดการไลบรารี (Internal Dependency Management)")
+    """Install required libraries verified to work with SDXL and Pony XL models"""
+    print("\n📋 Managing internal library dependencies")
     print("-" * 30)
 
-    # อัปเกรด pip
-    print("📦 กำลังอัปเกรด pip...")
+    # Upgrade pip
+    print("📦 Upgrading pip...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
 
-    # ติดตั้ง PyTorch
-    print("\n🔥 กำลังติดตั้ง PyTorch (CUDA 13.0)")
+    # Install PyTorch
+    print("\n🔥 Installing PyTorch (CUDA 13.0)")
     torch_packages = [
         "torch",
         "torchvision",
@@ -73,8 +73,8 @@ def install_dependencies():
         ]
     )
 
-    # ติดตั้งไลบรารี AI และระบบเสริม (ระบุเวอร์ชันเพื่อป้องกัน Conflict)
-    print("\n📚 กำลังติดตั้งไลบรารี AI และระบบเสริม...")
+    # Install AI libraries (pinned versions to prevent compatibility conflicts)
+    print("\n📚 Installing AI libraries and supplementary systems...")
     other_requirements = [
         "diffusers==0.38.0",
         "transformers==4.57.6",
@@ -94,18 +94,17 @@ def install_dependencies():
         "psutil",
     ]
 
-    # ใช้การติดตั้งแบบปกติ
     subprocess.check_call([sys.executable, "-m", "pip", "install"] + other_requirements)
 
-    print("\n✅ ติดตั้งไลบรารีทั้งหมดเรียบร้อยแล้ว!")
+    print("\n✅ All libraries installed successfully!")
     return True
 
 
 def select_startup_model():
-    """เลือกโมเดลเริ่มต้นผ่านหน้าจอโต้ตอบ"""
-    print_section("การเลือกโมเดลหลัก (Base Model Selection)")
+    """Interactively select the startup model"""
+    print_section("Base Model Selection")
 
-    # ดึงรายชื่อโมเดลจากโฟลเดอร์ models เพื่อแสดงในตัวเลือกด้วย
+    # Fetch locally downloaded checkpoints from models directory
     local_models = []
     if os.path.exists("models"):
         local_models = [
@@ -115,17 +114,17 @@ def select_startup_model():
     models = [
         {
             "name": "stabilityai/stable-diffusion-xl-base-1.0",
-            "description": "SDXL Base (แนะนำ) - คุณภาพสูง",
+            "description": "SDXL Base (Recommended) - High Quality",
             "size": "~7GB",
         },
         {
             "name": "runwayml/stable-diffusion-v1-5",
-            "description": "SD 1.5 - เร็วกว่า, ขนาดเล็กกว่า",
+            "description": "SD 1.5 - Faster, Smaller size",
             "size": "~4GB",
         },
     ]
 
-    print("เลือกโมเดลหลักที่จะโหลดตอนเริ่มต้น:")
+    print("Select the main model to load at startup:")
     print()
 
     idx = 1
@@ -133,38 +132,38 @@ def select_startup_model():
         print(f"   [{idx}] {model['description']} ({model['name']})")
         idx += 1
 
-    # แสดงโมเดล Local ที่เจอ
+    # Print detected local models
     for l_model in local_models:
         print(f"   [{idx}] Local: {l_model}")
         idx += 1
 
-    print(f"   [{idx}] ไม่โหลด (โหลดเองภายหลัง)")
+    print(f"   [{idx}] None (Load manually later)")
     print()
 
     while True:
         try:
-            choice_str = input(f"ระบุตัวเลือก [1-{idx}] (ค่าเริ่มต้นคือ 1): ").strip()
+            choice_str = input(f"Enter choice [1-{idx}] (Default is 1): ").strip()
             choice = int(choice_str) if choice_str else 1
 
             if 1 <= choice <= len(models):
                 selected = models[choice - 1]["name"]
-                print(f"✅ เลือก: {selected}")
+                print(f"✅ Selected: {selected}")
                 return selected
             elif len(models) < choice < idx:
                 selected = local_models[choice - len(models) - 1]
-                print(f"✅ เลือกโมเดล Local: {selected}")
+                print(f"✅ Selected Local Model: {selected}")
                 return selected
             elif choice == idx:
-                print("✅ จะไม่มีการโหลดโมเดลตอนเริ่มต้น")
+                print("✅ No model will be loaded at startup.")
                 return "none"
             else:
-                print(f"❌ ตัวเลือกไม่ถูกต้อง กรุณาระบุ 1-{idx}")
+                print(f"❌ Invalid choice. Please enter a value between 1 and {idx}.")
         except ValueError:
-            print("❌ กรุณากรอกเป็นตัวเลขเท่านั้น")
+            print("❌ Please enter numbers only.")
 
 
 def configure_offline_mode():
-    print_section("การตั้งค่าเครือข่าย")
+    print_section("Network Configuration")
 
     os.makedirs("models", exist_ok=True)
     local_files = glob.glob("models/*.safetensors") + glob.glob("models/*.ckpt")
@@ -189,61 +188,61 @@ def configure_offline_mode():
             ):
                 cached_standard_models.append(m_id)
 
-    print(f"📦 สถานะทรัพยากรในเครื่อง:")
-    print(f"   • ไฟล์ Local (.safetensors): {len(local_files)} ไฟล์")
+    print(f"📦 Local resources status:")
+    print(f"   • Local files (.safetensors): {len(local_files)} files")
 
     if cached_standard_models:
-        print(f"   • โมเดลมาตรฐานพร้อมรันออฟไลน์:")
+        print(f"   • Standard models ready offline:")
         for m in cached_standard_models:
             print(f"      ✅ {m.split('/')[-1]}")
     else:
-        print(f"   • โมเดลมาตรฐาน: ❌ ไม่พบใน Cache (ต้องออนไลน์เพื่อโหลด)")
+        print(f"   • Standard models: ❌ Not found in cache (Online mode required to download)")
 
     print("-" * 45)
 
     if not local_files and not cached_standard_models:
-        print("⚠️ ไม่พบข้อมูลโมเดลใดๆ ในเครื่องเลย")
-        print("🌐 บังคับใช้ 'โหมดออนไลน์' เพื่อเตรียมดาวน์โหลด")
+        print("⚠️ No local model files found on this machine.")
+        print("🌐 Enforcing 'Online Mode' for download preparation.")
         return False
 
-    print("เลือกโหมดการรัน:")
-    print("  [ 1 ] ออนไลน์  : ดาวน์โหลดโมเดลจากอินเทอร์เน็ต")
-    print("  [ 2 ] ออฟไลน์  : ใช้เฉพาะโมเดลที่มีอยู่แล้ว ไม่ใช้เน็ต")
+    print("Select execution mode:")
+    print("  [ 1 ] Online  : Download models from internet if needed")
+    print("  [ 2 ] Offline : Use local cached models only, no internet connection")
     print()
 
-    res = input("เลือก [1 หรือ 2] (Default 2): ").strip()
+    res = input("Select [1 or 2] (Default 2): ").strip()
     return res != "1"
 
 
 def setup_directories():
-    """สร้างโครงสร้างโฟลเดอร์ที่จำเป็น"""
-    print_section("กำลังตั้งค่าโฟลเดอร์")
+    """Setup required directory structures"""
+    print_section("Setting up directories")
 
     directories = ["loras", "models", "cache"]
 
     for directory in directories:
         Path(directory).mkdir(parents=True, exist_ok=True)
-        print(f"📁  ตรวจสอบ/สร้าง: {directory}/")
+        print(f"📁  Checking/Creating: {directory}/")
 
-    print("✅  โครงสร้างโฟลเดอร์พร้อมใช้งาน")
+    print("✅  Folder structure is ready for use.")
 
 
 def check_system_requirements():
-    """ตรวจสอบสเปคเครื่องและให้คำแนะนำ"""
-    print_section("ตรวจสอบความต้องการของระบบ")
+    """Check hardware specifications and output suggestions"""
+    print_section("System Requirements Check")
 
     try:
-        import psutil
+        import psutil  # type: ignore
 
         memory_gb = psutil.virtual_memory().total / (1024**3)
         print(f"💾 RAM: {memory_gb:.1f}GB")
         disk_free = psutil.disk_usage(".").free / (1024**3)
-        print(f"💽 พื้นที่ว่างในดิสก์: {disk_free:.1f}GB")
+        print(f"💽 Free Disk Space: {disk_free:.1f}GB")
     except ImportError:
-        print("ℹ️  ระบบแนะนำให้ติดตั้ง psutil: pip install psutil")
+        print("ℹ️  System recommends installing psutil: pip install psutil")
 
     try:
-        import torch
+        import torch  # type: ignore
 
         if torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name()
@@ -251,21 +250,21 @@ def check_system_requirements():
             print(f"🎮 GPU: {gpu_name}")
             print(f"🔥 VRAM: {vram_gb:.1f}GB")
             if vram_gb >= 12:
-                print("🚀 GPU ของคุณยอดเยี่ยมมาก")
+                print("🚀 Your GPU is excellent!")
         else:
-            print("⚠️ ไม่พบ NVIDIA GPU (CUDA) - จะใช้ CPU แทน")
+            print("⚠️ NVIDIA GPU (CUDA) not found - using CPU instead")
     except ImportError:
-        print("📦 ยังไม่ได้ติดตั้ง PyTorch")
+        print("📦 PyTorch is not installed")
     except Exception as e:
         print(f"⚠️ GPU check failed: {e}")
 
 
 def main():
-    """ฟังก์ชันหลักสำหรับการเริ่มระบบ"""
+    """Main entry point for starting the system"""
     print_banner()
 
     if not check_python_version():
-        input("\nกด Enter เพื่อออก...")
+        input("\nPress Enter to exit...")
         sys.exit(1)
 
     setup_directories()
@@ -274,33 +273,33 @@ def main():
     offline_mode = configure_offline_mode()
 
     if not offline_mode:
-        print("\n🌐 กำลังตรวจสอบการอัปเดตไลบรารี (Online Mode)...")
+        print("\n🌐 Checking library updates (Online Mode)...")
         if not install_dependencies():
-            print("\n❌ การติดตั้งไลบรารีล้มเหลว! (ตรวจสอบการเชื่อมต่อเน็ต)")
-            cont = input("ต้องการพยายามรันต่อแบบ Offline หรือไม่? [y/N]: ").lower()
+            print("\n❌ Library installation failed! (Check internet connection)")
+            cont = input("Do you want to try running in Offline Mode anyway? [y/N]: ").lower()
             if cont not in ["y", "yes"]:
                 sys.exit(1)
     else:
-        print("\n🔌 โหมดออฟไลน์: ข้ามการตรวจสอบไลบรารีเพื่อความรวดเร็ว")
+        print("\n🔌 Offline Mode: Skipping library check for faster startup")
 
     check_system_requirements()
 
-    print_section("กำลังเริ่มเซิร์ฟเวอร์")
+    print_section("Starting Server")
 
     try:
         from sd_server import main as run_server
 
         print("\n" + "=" * 60)
-        print("🎉 เซิร์ฟเวอร์พร้อมทำงาน!")
+        print("🎉 Server ready!")
         print("=" * 60)
         run_server(default_model_to_load=chosen_model, offline=offline_mode)
 
     except Exception as e:
         import traceback
 
-        print(f"\n❌ เกิดข้อผิดพลาด:")
+        print(f"\n❌ An error occurred:")
         traceback.print_exc()
-        input("\nกด Enter เพื่อออก...")
+        input("\nPress Enter to exit...")
         sys.exit(1)
 
 

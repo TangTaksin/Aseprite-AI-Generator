@@ -4,6 +4,10 @@
 
 ### [1.0.4] — 2026-06-19
 
+#### Added
+- Added model and LoRA compatibility validation to prevent mixing SD 1.5 and SDXL/Pony assets
+- Added a clean, single-line error response message for incompatible assets
+
 #### Changed
 - Refactored entire codebase into modular structure (`api_server.py`, `models_manager.py`, `image_processing.py`)
 - Moved image generation and model management logic out of `sd_server.py` into `src/`
@@ -18,6 +22,8 @@
 - Auto-enable TF32 Acceleration and cuDNN Benchmark on startup
 - Enable bfloat16 precision when GPU supports it
 - Added VAE Slicing & Tiling to reduce VRAM usage
+- Added Generation Examples gallery in `README.md` featuring a Chibi Boa Profile setup (200px preview)
+- Formatted configuration files (`ai_profiles.json`) with pretty-print spacing for better readability
 
 ---
 

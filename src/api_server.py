@@ -38,6 +38,27 @@ def generate() -> Tuple[Any, int]:
             data.get("model_name") if data else None
         ) or model_manager.default_model or "stabilityai/stable-diffusion-xl-base-1.0"
 
+        lora_model = data.get("lora_model") if data else None
+
+        # ตรวจสอบความเข้ากันได้ของ Model และ LoRA (โมเดลประเภท SD 1.5 และ SDXL ไม่สามารถใช้ร่วมกันได้)
+        if lora_model and lora_model.lower() not in ["none", ""]:
+            model_lower = requested_model.lower()
+            lora_lower = lora_model.lower()
+            
+            is_model_sdxl = "xl" in model_lower or "pony" in model_lower or "illustrious" in model_lower
+            is_lora_sdxl = "xl" in lora_lower or "pony" in lora_lower or "illustrious" in lora_lower or "shirosu" in lora_lower
+
+            if is_model_sdxl and not is_lora_sdxl:
+                return jsonify({
+                    "success": False,
+                    "error": "Model and LoRA incompatible! Please match versions."
+                }), 400
+            elif not is_model_sdxl and is_lora_sdxl:
+                return jsonify({
+                    "success": False,
+                    "error": "Model and LoRA incompatible! Please match versions."
+                }), 400
+
         # โหลดโมเดลหลัก
         if not model_manager.load_model(requested_model):
             return (
@@ -66,14 +87,17 @@ def generate() -> Tuple[Any, int]:
         # ลบพื้นหลัง
         if data and data.get("remove_background", False):
             image = image_processor.remove_background(image)
+            image_processor.offload_segmentation_model()
 
         pixel_width = int(data.get("pixel_width", 64)) if data else 64
         pixel_height = int(data.get("pixel_height", 64)) if data else 64
         colors = int(data.get("colors", 16)) if data else 16
 
+        use_dithering = bool(data.get("use_dithering", False)) if data else False
+
         # ทำพิกเซลอาร์ต
         pixel_image = image_processor.process_for_pixel_art(
-            image, target_size=(pixel_width, pixel_height), colors=colors
+            image, target_size=(pixel_width, pixel_height), colors=colors, use_dithering=use_dithering
         )
 
         img_base64 = image_processor.image_to_base64(pixel_image)
@@ -112,6 +136,7 @@ def health_check() -> Any:
         "status": "healthy",
         "model_loaded": model_manager.model_loaded,
         "current_model": model_manager.current_model,
+        "default_model": model_manager.default_model,
         "current_lora": model_manager.current_lora,
         "device": model_manager.device,
         "vram_used_gb": round(vram_used, 2),

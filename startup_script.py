@@ -91,6 +91,7 @@ def install_dependencies():
         "opencv-python",
         "timm",
         "numpy",
+        "psutil",
     ]
 
     # ใช้การติดตั้งแบบปกติ
@@ -264,7 +265,6 @@ def main():
     print_banner()
 
     if not check_python_version():
-        print("   หากรันแล้วพบข้อผิดพลาด แนะนำให้ดาวน์เกรดกลับมาที่ 3.14")
         input("\nกด Enter เพื่อออก...")
         sys.exit(1)
 

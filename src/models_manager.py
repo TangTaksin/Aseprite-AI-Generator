@@ -109,7 +109,10 @@ class ModelManager:
 
         # VAE slicing ช่วยลด VRAM, VAE tiling เปิดเฉพาะภาพใหญ่ (เพิ่ม overhead สำหรับภาพปกติ)
         try:
-            pipeline.enable_vae_slicing()
+            if hasattr(pipeline, "vae") and hasattr(pipeline.vae, "enable_slicing"):
+                pipeline.vae.enable_slicing()
+            else:
+                pipeline.enable_vae_slicing()
             log.info("  [OK] VAE Slicing: Enabled")
         except Exception as e:
             log.warning("  VAE slicing failed: %s", e)
@@ -438,9 +441,15 @@ class ModelManager:
         use_tiling = gen_width > 1024 or gen_height > 1024
         try:
             if use_tiling:
-                self.pipeline.enable_vae_tiling()
+                if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
+                    self.pipeline.vae.enable_tiling()
+                else:
+                    self.pipeline.enable_vae_tiling()
             else:
-                self.pipeline.disable_vae_tiling()
+                if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "disable_tiling"):
+                    self.pipeline.vae.disable_tiling()
+                else:
+                    self.pipeline.disable_vae_tiling()
         except Exception:
             pass
 

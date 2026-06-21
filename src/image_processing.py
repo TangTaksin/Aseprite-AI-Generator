@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class ImageProcessor:
-    """ประมวลผลรูปภาพ: การลบพื้นหลัง (BiRefNet) และการทำ Pixel Art Color Quantization"""
+    """Processes images: background removal (BiRefNet) and pixel art color quantization."""
     
     def __init__(self, device: str = "cuda", offline_mode: bool = False):
         self.device = device
@@ -22,7 +22,7 @@ class ImageProcessor:
         self.segmentation_processor: Optional = None
 
     def load_segmentation_model(self) -> bool:
-        """โหลดโมเดล BiRefNet สำหรับลบพื้นหลัง (Load Once, Keep Resident)"""
+        """Loads the BiRefNet model for background removal (Load Once, Keep Resident)."""
         if self.segmentation_model and self.segmentation_processor:
             # Model already loaded, ensure it's on the correct device
             if self.segmentation_model.device != torch.device(self.device):
@@ -76,7 +76,7 @@ class ImageProcessor:
             log.info("BiRefNet offloaded to CPU")
 
     def remove_background(self, pil_image: Image.Image) -> Image.Image:
-        """ใช้ BiRefNet ลบพื้นหลังของรูปภาพออก"""
+        """Removes the background of the image using BiRefNet."""
         if not self.load_segmentation_model():
             raise RuntimeError("Failed to load background removal model")
 
@@ -132,11 +132,11 @@ class ImageProcessor:
         enhance_contrast: float = 1.0,
         sharpen_amount: float = 2.0,
     ) -> Image.Image:
-        """ประมวลผลรูปภาพให้กลายเป็นพิกเซลอาร์ต คมชัดขึ้น และมีพาเลตต์สีคงที่"""
-        log.info("แปลงเป็น Pixel Art: ขนาด %s, จำนวนสี %d", target_size, colors)
+        """Processes the image to convert it into pixel art with sharp edges and a fixed color palette."""
+        log.info("Converting to Pixel Art: size %s, colors %d", target_size, colors)
 
         if colors < 2:
-            raise ValueError("จำนวนสีต้องมากกว่าหรือเท่ากับ 2")
+            raise ValueError("Number of colors must be greater than or equal to 2")
 
         alpha: Optional[Image.Image] = None
         if image.mode in ("RGBA", "LA", "PA", "P"):
@@ -144,7 +144,7 @@ class ImageProcessor:
                 temp_image = image.convert("RGBA")
                 extracted_alpha = temp_image.getchannel("A")
 
-                # ใช้ Lookup Table สำหรับการกรอง Alpha channel
+                # Use a Lookup Table (LUT) to threshold the alpha channel
                 lut = [255 if i >= alpha_threshold else 0 for i in range(256)]
                 alpha = extracted_alpha.point(lut)
 
@@ -181,11 +181,11 @@ class ImageProcessor:
             image = image.convert("RGBA")
             image.putalpha(alpha)
 
-        log.info("ประมวลผล Pixel Art สำเร็จ")
+        log.info("Pixel art processing successful")
         return image
 
     def image_to_base64(self, image: Image.Image) -> str:
-        """แปลงรูปภาพ PIL เป็น base64 encoded string สำหรับการส่ง API"""
+        """Converts a PIL Image into a base64 encoded string for API transmission."""
         if image.mode != "RGBA":
             image = image.convert("RGBA")
         return base64.b64encode(image.tobytes()).decode()

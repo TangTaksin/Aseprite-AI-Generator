@@ -13,6 +13,10 @@ from src.image_processing import ImageProcessor
 from src.models_manager import ModelManager
 
 # ─── Logging Setup ────────────────────────────────────────────────────────────
+import warnings
+# ซ่อน UserWarning เกี่ยวกับ token length ของ transformers เพื่อไม่ให้แสดงคำเตือนที่น่าสับสนใน log
+warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -20,6 +24,8 @@ logging.basicConfig(
 )
 # ปิด log ที่ไม่จำเป็น
 diffusers_logging.set_verbosity_error()
+import transformers
+transformers.logging.set_verbosity_error()
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 

@@ -1,11 +1,16 @@
 import base64
+import logging
+from typing import Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image, ImageEnhance, ImageFilter
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
-import numpy as np
-from typing import Tuple, Optional, Any
+
+log = logging.getLogger(__name__)
+
 
 class ImageProcessor:
     """ประมวลผลรูปภาพ: การลบพื้นหลัง (BiRefNet) และการทำ Pixel Art Color Quantization"""
@@ -13,8 +18,8 @@ class ImageProcessor:
     def __init__(self, device: str = "cuda", offline_mode: bool = False):
         self.device = device
         self.offline_mode = offline_mode
-        self.segmentation_model: Optional[Any] = None
-        self.segmentation_processor: Optional[Any] = None
+        self.segmentation_model: Optional = None
+        self.segmentation_processor: Optional = None
 
     def load_segmentation_model(self) -> bool:
         """โหลดโมเดล BiRefNet สำหรับลบพื้นหลัง (Load Once, Keep Resident)"""
@@ -24,7 +29,7 @@ class ImageProcessor:
                 self.segmentation_model.to(self.device)
             return True
 
-        print("📦 Loading BiRefNet for background removal (will keep resident in memory)...")
+        log.info("Loading BiRefNet for background removal (will keep resident in memory)...")
         try:
             model_name = "zhengpeng7/BiRefNet"
             self.segmentation_processor = transforms.Compose(
@@ -52,30 +57,30 @@ class ImageProcessor:
                 try:
                     self.segmentation_model.to(memory_format=torch.channels_last)
                 except Exception as e:
-                    print(f"⚠️ Could not set memory format to channels_last: {e}")
+                    log.warning("Could not set memory format to channels_last: %s", e)
 
-            print("✅ BiRefNet loaded successfully and will remain resident in memory")
+            log.info("BiRefNet loaded successfully and will remain resident in memory")
             return True
 
         except Exception as e:
-            print(f"❌ Error loading BiRefNet: {e}")
+            log.error("Error loading BiRefNet: %s", e)
             return False
 
     def offload_segmentation_model(self) -> None:
         """Move BiRefNet to CPU to free VRAM after use"""
         if self.segmentation_model is not None:
-            print("📤 Offloading BiRefNet to CPU...")
+            log.info("Offloading BiRefNet to CPU...")
             self.segmentation_model.to("cpu")
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            print("✅ BiRefNet offloaded to CPU")
+            log.info("BiRefNet offloaded to CPU")
 
     def remove_background(self, pil_image: Image.Image) -> Image.Image:
         """ใช้ BiRefNet ลบพื้นหลังของรูปภาพออก"""
         if not self.load_segmentation_model():
             raise RuntimeError("Failed to load background removal model")
 
-        print("🎭 Removing background with BiRefNet...")
+        log.info("Removing background with BiRefNet...")
         try:
             with torch.inference_mode():
                 rgb_image = pil_image.convert("RGB")
@@ -110,11 +115,11 @@ class ImageProcessor:
             rgba_image = pil_image.convert("RGBA")
             rgba_image.putalpha(mask_image)
 
-            print("✅ Background removal complete")
+            log.info("Background removal complete")
             return rgba_image
 
         except Exception as e:
-            print(f"❌ Error during background removal: {e}")
+            log.error("Error during background removal: %s", e)
             return pil_image.convert("RGBA")
 
     def process_for_pixel_art(
@@ -128,10 +133,10 @@ class ImageProcessor:
         sharpen_amount: float = 2.0,
     ) -> Image.Image:
         """ประมวลผลรูปภาพให้กลายเป็นพิกเซลอาร์ต คมชัดขึ้น และมีพาเลตต์สีคงที่"""
-        print(f"🖼️ แปลงเป็น Pixel Art: ขนาด {target_size}, จำนวนสี {colors}")
+        log.info("แปลงเป็น Pixel Art: ขนาด %s, จำนวนสี %d", target_size, colors)
 
         if colors < 2:
-            raise ValueError("❌ จำนวนสีต้องมากกว่าหรือเท่ากับ 2")
+            raise ValueError("จำนวนสีต้องมากกว่าหรือเท่ากับ 2")
 
         alpha: Optional[Image.Image] = None
         if image.mode in ("RGBA", "LA", "PA", "P"):
@@ -145,7 +150,7 @@ class ImageProcessor:
 
                 image = temp_image.convert("RGB")
             except Exception as e:
-                print(f"⚠️ Warning processing alpha: {e}")
+                log.warning("Warning processing alpha: %s", e)
                 if image.mode != "RGB":
                     image = image.convert("RGB")
         else:
@@ -176,7 +181,7 @@ class ImageProcessor:
             image = image.convert("RGBA")
             image.putalpha(alpha)
 
-        print("✅ ประมวลผล Pixel Art สำเร็จ")
+        log.info("ประมวลผล Pixel Art สำเร็จ")
         return image
 
     def image_to_base64(self, image: Image.Image) -> str:

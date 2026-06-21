@@ -2,6 +2,34 @@
 
 ## Python Server
 
+### [1.0.5] — 2026-06-22
+
+#### Added
+- Added LoRA caching system to reduce disk I/O when switching LoRAs
+- Added manual endpoint `/offload_segmentation` to control VRAM usage for background removal model
+- Added safety check for StopIteration when retrieving model parameters
+
+#### Changed
+- Modified background removal model to load once and remain resident in GPU memory (instead of loading/unloading per request)
+- Removed redundant offline mode assignment per request
+- Avoided unnecessary image conversions by checking image mode before conversion
+- Replaced xformers with PyTorch native SDPA for stable performance on newer GPUs
+
+#### Fixed
+- Replaced bare `except: pass` with specific exception logging in image_processing.py
+- Changed generic Exception to RuntimeError for background loading failure
+- Refined exception handling in model optimization to avoid swallowing critical errors
+- Improved error messages for attention setup, VAE slicing/tiling, and scheduler setup failures
+
+#### Removed
+- Removed xformers support in favor of PyTorch native SDPA for stability and identical performance
+- Removed unused `scipy` and `torchaudio` dependencies from requirements.txt and startup_script.py to speed up installation and save disk space
+- Removed empty test logs and `.qodo` editor cache directories
+
+#### Optimized
+- Reduced latency for consecutive background removal requests by keeping model resident
+- Reduced LoRA switch latency via caching mechanism
+
 ### [1.0.4] — 2026-06-19
 
 #### Added

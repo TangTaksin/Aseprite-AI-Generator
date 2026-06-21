@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Local AI Generator for Aseprite
-Version 1.0.4
+Version 1.0.5
 """
 
 import sys
@@ -14,7 +14,7 @@ from pathlib import Path
 
 def print_banner():
     print("\n" + "=" * 60)
-    print("🎮 LOCAL AI GENERATOR FOR ASEPRITE v1.0.4")
+    print("🎮 LOCAL AI GENERATOR FOR ASEPRITE v1.0.5")
     print("=" * 60)
 
 
@@ -59,7 +59,6 @@ def install_dependencies():
     torch_packages = [
         "torch",
         "torchvision",
-        "torchaudio",
     ]
     subprocess.check_call(
         [

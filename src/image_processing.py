@@ -17,12 +17,14 @@ class ImageProcessor:
         self.segmentation_processor: Optional[Any] = None
 
     def load_segmentation_model(self) -> bool:
-        """โหลดโมเดล BiRefNet สำหรับลบพื้นหลัง (Lazy Load)"""
+        """โหลดโมเดล BiRefNet สำหรับลบพื้นหลัง (Load Once, Keep Resident)"""
         if self.segmentation_model and self.segmentation_processor:
-            self.segmentation_model.to(self.device)
+            # Model already loaded, ensure it's on the correct device
+            if self.segmentation_model.device != torch.device(self.device):
+                self.segmentation_model.to(self.device)
             return True
 
-        print("📦 Loading BiRefNet for background removal...")
+        print("📦 Loading BiRefNet for background removal (will keep resident in memory)...")
         try:
             model_name = "zhengpeng7/BiRefNet"
             self.segmentation_processor = transforms.Compose(
@@ -49,10 +51,10 @@ class ImageProcessor:
             if self.device == "cuda" and self.segmentation_model is not None:
                 try:
                     self.segmentation_model.to(memory_format=torch.channels_last)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"⚠️ Could not set memory format to channels_last: {e}")
 
-            print("✅ BiRefNet loaded successfully")
+            print("✅ BiRefNet loaded successfully and will remain resident in memory")
             return True
 
         except Exception as e:
@@ -71,7 +73,7 @@ class ImageProcessor:
     def remove_background(self, pil_image: Image.Image) -> Image.Image:
         """ใช้ BiRefNet ลบพื้นหลังของรูปภาพออก"""
         if not self.load_segmentation_model():
-            raise Exception("ไม่สามารถโหลดโมเดลลบพื้นหลังได้")
+            raise RuntimeError("Failed to load background removal model")
 
         print("🎭 Removing background with BiRefNet...")
         try:
@@ -85,8 +87,11 @@ class ImageProcessor:
                 
                 if self.segmentation_model is None:
                     raise RuntimeError("segmentation_model not initialized")
-                    
-                model_dtype = next(self.segmentation_model.parameters()).dtype
+
+                try:
+                    model_dtype = next(self.segmentation_model.parameters()).dtype
+                except StopIteration:
+                    raise RuntimeError("Segmentation model has no parameters")
                 input_tensor = input_tensor.to(dtype=model_dtype)
 
                 outputs = self.segmentation_model(input_tensor)
@@ -133,17 +138,19 @@ class ImageProcessor:
             try:
                 temp_image = image.convert("RGBA")
                 extracted_alpha = temp_image.getchannel("A")
-                
+
                 # ใช้ Lookup Table สำหรับการกรอง Alpha channel
                 lut = [255 if i >= alpha_threshold else 0 for i in range(256)]
                 alpha = extracted_alpha.point(lut)
-                
+
                 image = temp_image.convert("RGB")
             except Exception as e:
                 print(f"⚠️ Warning processing alpha: {e}")
-                image = image.convert("RGB")
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
         else:
-            image = image.convert("RGB")
+            if image.mode != "RGB":
+                image = image.convert("RGB")
 
         if enhance_contrast != 1.0:
             enhancer = ImageEnhance.Contrast(image)

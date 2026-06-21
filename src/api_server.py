@@ -78,8 +78,7 @@ def generate() -> Tuple[Any, int]:
             "height": data.get("height", 1024) if data else 1024,
         }
 
-        # เผื่อมีการอัปเดต offline mode ล่าสุด
-        image_processor.offline_mode = model_manager.offline_mode
+        # Offline mode is set at startup and does not change per request
 
         start_time = time.time()
         image, used_seed = model_manager.generate_image(prompt=prompt, **kwargs)
@@ -87,7 +86,8 @@ def generate() -> Tuple[Any, int]:
         # ลบพื้นหลัง
         if data and data.get("remove_background", False):
             image = image_processor.remove_background(image)
-            image_processor.offload_segmentation_model()
+            # Segmentation model remains resident in memory for performance
+            # To manually offload, use the /offload_segmentation endpoint or call offload_segmentation_model() directly
 
         pixel_width = int(data.get("pixel_width", 64)) if data else 64
         pixel_height = int(data.get("pixel_height", 64)) if data else 64
@@ -204,6 +204,20 @@ def list_loras() -> Any:
                     lora_models.append(filename)
 
     return jsonify({"loras": lora_models})
+
+
+@app.route("/offload_segmentation", methods=["POST"])
+def offload_segmentation_route() -> Tuple[Any, int]:
+    """Manually offload the segmentation model to free VRAM"""
+    try:
+        image_processor.offload_segmentation_model()
+        return jsonify({
+            "success": True,
+            "message": "Segmentation model offloaded to CPU"
+        }), 200
+    except Exception as e:
+        print(f"❌ Error offloading segmentation model: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 def main(default_model_to_load: Optional[str] = None, offline: bool = False) -> None:

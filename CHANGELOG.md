@@ -8,18 +8,23 @@
 - Added LoRA caching system to reduce disk I/O when switching LoRAs
 - Added manual endpoint `/offload_segmentation` to control VRAM usage for background removal model
 - Added safety check for StopIteration when retrieving model parameters
+- Added infinite prompt token length support (> 77 tokens) using a custom token chunking and embedding concatenation system for both SD 1.5 and SDXL
+- Added token threshold check (under 77 tokens) to fallback to raw string prompts, ensuring 100% exact output match with previous versions
 
 #### Changed
 - Modified background removal model to load once and remain resident in GPU memory (instead of loading/unloading per request)
 - Removed redundant offline mode assignment per request
 - Avoided unnecessary image conversions by checking image mode before conversion
 - Replaced xformers with PyTorch native SDPA for stable performance on newer GPUs
+- Translated all Thai comments, docstrings, error messages, and logs in image_processing.py to English for code standardization
+- Updated VAE slicing and tiling API calls to use the newer direct VAE module methods (.vae.enable_slicing, .vae.enable_tiling, .vae.disable_tiling) to suppress deprecation FutureWarnings
 
 #### Fixed
 - Replaced bare `except: pass` with specific exception logging in image_processing.py
 - Changed generic Exception to RuntimeError for background loading failure
 - Refined exception handling in model optimization to avoid swallowing critical errors
 - Improved error messages for attention setup, VAE slicing/tiling, and scheduler setup failures
+- Suppressed noisy Hugging Face transformers token length UserWarnings in api_server.py console
 
 #### Removed
 - Removed xformers support in favor of PyTorch native SDPA for stability and identical performance

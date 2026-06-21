@@ -368,6 +368,180 @@ class ModelManager:
             self.current_model = None
             return False
 
+    def _encode_prompt(self, prompt: str, negative_prompt: str, is_xl: bool) -> Dict[str, Any]:
+        """เข้ารหัส prompt และ negative prompt รองรับความยาวไม่จำกัด (เกิน 77 tokens) โดยใช้เทคนิค Chunking"""
+        device = self.device
+        
+        try:
+            if is_xl:
+                # ─── SDXL Encoding ───────────────────────────────────────────────
+                tokenizer_1 = self.pipeline.tokenizer
+                tokenizer_2 = self.pipeline.tokenizer_2
+                text_encoder_1 = self.pipeline.text_encoder
+                text_encoder_2 = self.pipeline.text_encoder_2
+                
+                p_ids_1 = tokenizer_1(prompt, truncation=False, return_tensors="pt").input_ids[0]
+                p_ids_2 = tokenizer_2(prompt, truncation=False, return_tensors="pt").input_ids[0]
+                n_ids_1 = tokenizer_1(negative_prompt, truncation=False, return_tensors="pt").input_ids[0]
+                n_ids_2 = tokenizer_2(negative_prompt, truncation=False, return_tensors="pt").input_ids[0]
+                
+                # หาก prompt ทั้งหมดมีความยาวไม่เกิน 77 tokens ให้ส่งคืนค่าว่างเพื่อไปใช้ raw prompt แบบเดิม (รักษาผลลัพธ์ดั้งเดิม)
+                if max(len(p_ids_1), len(p_ids_2), len(n_ids_1), len(n_ids_2)) <= 77:
+                    return {}
+                
+                bos_1, eos_1 = tokenizer_1.bos_token_id, tokenizer_1.eos_token_id
+                bos_2, eos_2 = tokenizer_2.bos_token_id, tokenizer_2.eos_token_id
+                
+                p_clean_1 = [t for t in p_ids_1.tolist() if t not in (bos_1, eos_1)]
+                p_clean_2 = [t for t in p_ids_2.tolist() if t not in (bos_2, eos_2)]
+                n_clean_1 = [t for t in n_ids_1.tolist() if t not in (bos_1, eos_1)]
+                n_clean_2 = [t for t in n_ids_2.tolist() if t not in (bos_2, eos_2)]
+                
+                chunk_size = 75
+                p_chunks_1 = [p_clean_1[i:i + chunk_size] for i in range(0, len(p_clean_1), chunk_size)]
+                p_chunks_2 = [p_clean_2[i:i + chunk_size] for i in range(0, len(p_clean_2), chunk_size)]
+                n_chunks_1 = [n_clean_1[i:i + chunk_size] for i in range(0, len(n_clean_1), chunk_size)]
+                n_chunks_2 = [n_clean_2[i:i + chunk_size] for i in range(0, len(n_clean_2), chunk_size)]
+                
+                if not p_chunks_1: p_chunks_1 = [[]]
+                if not p_chunks_2: p_chunks_2 = [[]]
+                if not n_chunks_1: n_chunks_1 = [[]]
+                if not n_chunks_2: n_chunks_2 = [[]]
+                
+                max_p = max(len(p_chunks_1), len(p_chunks_2))
+                while len(p_chunks_1) < max_p: p_chunks_1.append([])
+                while len(p_chunks_2) < max_p: p_chunks_2.append([])
+                
+                max_n = max(len(n_chunks_1), len(n_chunks_2))
+                while len(n_chunks_1) < max_n: n_chunks_1.append([])
+                while len(n_chunks_2) < max_n: n_chunks_2.append([])
+                
+                max_chunks = max(max_p, max_n)
+                
+                for lst in (p_chunks_1, p_chunks_2, n_chunks_1, n_chunks_2):
+                    while len(lst) < max_chunks:
+                        lst.append([])
+                
+                p_embeds_list = []
+                n_embeds_list = []
+                pooled_p_embed = None
+                pooled_n_embed = None
+                
+                for idx in range(max_chunks):
+                    pc1 = [bos_1] + p_chunks_1[idx] + [eos_1]
+                    pc2 = [bos_2] + p_chunks_2[idx] + [eos_2]
+                    pc1 = pc1 + [tokenizer_1.pad_token_id] * (77 - len(pc1))
+                    pc2 = pc2 + [tokenizer_2.pad_token_id] * (77 - len(pc2))
+                    
+                    nc1 = [bos_1] + n_chunks_1[idx] + [eos_1]
+                    nc2 = [bos_2] + n_chunks_2[idx] + [eos_2]
+                    nc1 = nc1 + [tokenizer_1.pad_token_id] * (77 - len(nc1))
+                    nc2 = nc2 + [tokenizer_2.pad_token_id] * (77 - len(nc2))
+                    
+                    t1 = torch.tensor([pc1], dtype=torch.long, device=device)
+                    t2 = torch.tensor([pc2], dtype=torch.long, device=device)
+                    nt1 = torch.tensor([nc1], dtype=torch.long, device=device)
+                    nt2 = torch.tensor([nc2], dtype=torch.long, device=device)
+                    
+                    with torch.inference_mode():
+                        # text_encoder_1 (CLIP ViT-L)
+                        enc_1_out = text_encoder_1(t1, output_hidden_states=True)
+                        p_emb1 = enc_1_out.hidden_states[-2]
+                        
+                        n_enc_1_out = text_encoder_1(nt1, output_hidden_states=True)
+                        n_emb1 = n_enc_1_out.hidden_states[-2]
+                        
+                        # text_encoder_2 (CLIP ViT-G)
+                        enc_2_out = text_encoder_2(t2, output_hidden_states=True)
+                        p_emb2 = enc_2_out.hidden_states[-2]
+                        p_pool = enc_2_out.text_embeds
+                        
+                        n_enc_2_out = text_encoder_2(nt2, output_hidden_states=True)
+                        n_emb2 = n_enc_2_out.hidden_states[-2]
+                        n_pool = n_enc_2_out.text_embeds
+                    
+                    p_emb = torch.cat([p_emb1, p_emb2], dim=-1)
+                    n_emb = torch.cat([n_emb1, n_emb2], dim=-1)
+                    
+                    p_embeds_list.append(p_emb)
+                    n_embeds_list.append(n_emb)
+                    
+                    if idx == 0:
+                        pooled_p_embed = p_pool
+                        pooled_n_embed = n_pool
+                        
+                prompt_embeds = torch.cat(p_embeds_list, dim=1)
+                negative_prompt_embeds = torch.cat(n_embeds_list, dim=1)
+                
+                return {
+                    "prompt_embeds": prompt_embeds,
+                    "negative_prompt_embeds": negative_prompt_embeds,
+                    "pooled_prompt_embeds": pooled_p_embed,
+                    "negative_pooled_prompt_embeds": pooled_n_embed,
+                }
+                
+            else:
+                # ─── SD 1.5 Encoding ─────────────────────────────────────────────
+                tokenizer = self.pipeline.tokenizer
+                text_encoder = self.pipeline.text_encoder
+                
+                p_ids = tokenizer(prompt, truncation=False, return_tensors="pt").input_ids[0]
+                n_ids = tokenizer(negative_prompt, truncation=False, return_tensors="pt").input_ids[0]
+                
+                # หาก prompt ทั้งหมดมีความยาวไม่เกิน 77 tokens ให้ส่งคืนค่าว่างเพื่อไปใช้ raw prompt แบบเดิม (รักษาผลลัพธ์ดั้งเดิม)
+                if max(len(p_ids), len(n_ids)) <= 77:
+                    return {}
+                
+                bos, eos = tokenizer.bos_token_id, tokenizer.eos_token_id
+                
+                p_clean = [t for t in p_ids.tolist() if t not in (bos, eos)]
+                n_clean = [t for t in n_ids.tolist() if t not in (bos, eos)]
+                
+                chunk_size = 75
+                p_chunks = [p_clean[i:i + chunk_size] for i in range(0, len(p_clean), chunk_size)]
+                n_chunks = [n_clean[i:i + chunk_size] for i in range(0, len(n_clean), chunk_size)]
+                
+                if not p_chunks: p_chunks = [[]]
+                if not n_chunks: n_chunks = [[]]
+                
+                max_chunks = max(len(p_chunks), len(n_chunks))
+                while len(p_chunks) < max_chunks: p_chunks.append([])
+                while len(n_chunks) < max_chunks: n_chunks.append([])
+                
+                p_embeds_list = []
+                n_embeds_list = []
+                
+                for idx in range(max_chunks):
+                    pc = [bos] + p_chunks[idx] + [eos]
+                    nc = [bos] + n_chunks[idx] + [eos]
+                    pc = pc + [tokenizer.pad_token_id] * (77 - len(pc))
+                    nc = nc + [tokenizer.pad_token_id] * (77 - len(nc))
+                    
+                    t = torch.tensor([pc], dtype=torch.long, device=device)
+                    nt = torch.tensor([nc], dtype=torch.long, device=device)
+                    
+                    with torch.inference_mode():
+                        p_emb = text_encoder(t)[0]
+                        n_emb = text_encoder(nt)[0]
+                        
+                    p_embeds_list.append(p_emb)
+                    n_embeds_list.append(n_emb)
+                    
+                prompt_embeds = torch.cat(p_embeds_list, dim=1)
+                negative_prompt_embeds = torch.cat(n_embeds_list, dim=1)
+                
+                return {
+                    "prompt_embeds": prompt_embeds,
+                    "negative_prompt_embeds": negative_prompt_embeds,
+                }
+                
+        except Exception as e:
+            log.error("Failed to encode long prompt using chunking, falling back to standard: %s", e, exc_info=True)
+            return {
+                "prompt": prompt,
+                "negative_prompt": negative_prompt
+            }
+
     # ─── Image Generation ─────────────────────────────────────────────────────
 
     def generate_image(
@@ -453,15 +627,25 @@ class ModelManager:
         except Exception:
             pass
 
+        # ─── Encode Prompt (Support > 77 tokens via chunking) ──────────────
+        neg_prompt = gen_params.get("negative_prompt", "")
+        embed_kwargs = self._encode_prompt(prompt, neg_prompt, is_xl)
+
         pipeline_kwargs.update({
-            "prompt": prompt,
-            "negative_prompt": gen_params["negative_prompt"],
             "width": gen_width,
             "height": gen_height,
             "num_inference_steps": int(gen_params["num_inference_steps"]),
             "guidance_scale": float(gen_params["guidance_scale"]),
             "generator": generator,
         })
+        
+        if "prompt_embeds" in embed_kwargs:
+            pipeline_kwargs.update(embed_kwargs)
+        else:
+            pipeline_kwargs.update({
+                "prompt": prompt,
+                "negative_prompt": neg_prompt,
+            })
 
         # ─── Inference ────────────────────────────────────────────────────
         with torch.inference_mode():

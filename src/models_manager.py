@@ -296,13 +296,14 @@ class ModelManager:
                 kwargs["vae"] = vae
             if is_local_file:
                 kwargs["config"] = "stabilityai/stable-diffusion-xl-base-1.0"
+                kwargs["local_files_only"] = local_only
                 return StableDiffusionXLPipeline.from_single_file(local_model_path, **kwargs)
             kwargs["local_files_only"] = local_only
             return StableDiffusionXLPipeline.from_pretrained(model_name, **kwargs)
 
         if is_local_file:
             return StableDiffusionPipeline.from_single_file(
-                local_model_path, torch_dtype=precision, load_safety_checker=False)
+                local_model_path, torch_dtype=precision, load_safety_checker=False, local_files_only=local_only)
         return StableDiffusionPipeline.from_pretrained(
             model_name, torch_dtype=precision, use_safetensors=True, local_files_only=local_only)
 

@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 import time
 from typing import Any, List, Optional, Tuple
 
@@ -30,6 +31,8 @@ logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 log = logging.getLogger(__name__)
+
+server_lock = threading.Lock()
 
 app = Flask(__name__)
 CORS(app)
@@ -65,14 +68,19 @@ def _get_request_params(data: dict, defaults: dict) -> dict:
 
 def _list_files_in_dir(directory: str, extensions: tuple) -> List[str]:
     """แสดงรายการไฟล์ในโฟลเดอร์ที่มีนามสกุลตรงตามที่กำหนด"""
-    os.makedirs(directory, exist_ok=True)
-    return [f for f in os.listdir(directory) if f.endswith(extensions)]
+    try:
+        os.makedirs(directory, exist_ok=True)
+        return [f for f in os.listdir(directory) if f.endswith(extensions)]
+    except Exception as e:
+        log.error("Error listing files in directory %s: %s", directory, e)
+        return []
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route("/generate", methods=["POST"])
 def generate() -> Tuple[Any, int]:
+    server_lock.acquire()
     try:
         data = request.get_json()
         prompt = data.get("prompt") if data else None
@@ -144,6 +152,8 @@ def generate() -> Tuple[Any, int]:
     except Exception as e:
         log.error("Generation error: %s", e, exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        server_lock.release()
 
 
 @app.route("/health", methods=["GET"])
@@ -170,6 +180,7 @@ def health_check() -> Any:
 
 @app.route("/load_model", methods=["POST"])
 def load_model_route() -> Tuple[Any, int]:
+    server_lock.acquire()
     try:
         data = request.get_json()
         model_name = data.get("model_name") if data else None
@@ -192,6 +203,8 @@ def load_model_route() -> Tuple[Any, int]:
     except Exception as e:
         log.error("Model load error: %s", e, exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        server_lock.release()
 
 
 @app.route("/models", methods=["GET"])
@@ -222,6 +235,7 @@ def list_loras() -> Any:
 @app.route("/offload_segmentation", methods=["POST"])
 def offload_segmentation_route() -> Tuple[Any, int]:
     """Manually offload the segmentation model to free VRAM"""
+    server_lock.acquire()
     try:
         image_processor.offload_segmentation_model()
         return jsonify({
@@ -231,6 +245,8 @@ def offload_segmentation_route() -> Tuple[Any, int]:
     except Exception as e:
         log.error("Error offloading segmentation model: %s", e, exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        server_lock.release()
 
 
 def main(default_model_to_load: Optional[str] = None, offline: bool = False) -> None:

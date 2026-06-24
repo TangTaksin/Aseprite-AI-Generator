@@ -45,7 +45,7 @@ class ImageProcessor:
                 model_name,
                 trust_remote_code=True,
                 local_files_only=self.offline_mode,
-                dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
             )
 
             if self.segmentation_model is None:
@@ -109,7 +109,7 @@ class ImageProcessor:
                     mode="bilinear",
                     align_corners=False,
                 )
-                mask = torch.sigmoid(mask).squeeze()
+                mask = torch.sigmoid(mask).squeeze(0).squeeze(0)
                 binary_mask = (mask > 0.5).cpu().numpy().astype(np.uint8)
 
             mask_image = Image.fromarray(binary_mask * 255, mode="L")

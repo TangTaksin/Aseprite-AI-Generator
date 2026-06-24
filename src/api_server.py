@@ -126,10 +126,16 @@ def generate() -> Tuple[Any, int]:
         pixel_width = int(data.get("pixel_width", 64))
         pixel_height = int(data.get("pixel_height", 64))
         colors = int(data.get("colors", 16))
+        pixel_snapping = bool(data.get("pixel_snapping", False))
+        pixel_size_override = float(data.get("pixel_size", 0.0))
 
         # ทำพิกเซลอาร์ต
         pixel_image = image_processor.process_for_pixel_art(
-            image, target_size=(pixel_width, pixel_height), colors=colors
+            image,
+            target_size=(pixel_width, pixel_height),
+            colors=colors,
+            pixel_snapping=pixel_snapping,
+            pixel_size_override=pixel_size_override
         )
 
         img_base64 = image_processor.image_to_base64(pixel_image)

@@ -4,6 +4,12 @@
 
 ### [1.0.6] — 2026-06-25
 
+#### Added
+- Integrated Sprite Fusion Pixel Snapper grid-snapping algorithm into [src/image_processing.py](file:///D:/Aseprite-AI-Generator/src/image_processing.py) for cleaning up sub-pixel rendering (mixels) in AI-generated pixel art
+- Added support for `pixel_snapping` and `pixel_size` parameters in the `/generate` endpoint in [src/api_server.py](file:///D:/Aseprite-AI-Generator/src/api_server.py)
+- Added default values for `pixel_snapping` and `pixel_size_override` in the Aseprite Extension configuration ([libs/settings-store.lua](file:///C:/Users/taksi/AppData/Roaming/Aseprite/extensions/extension-aseprite-generator/libs/settings-store.lua))
+- Added custom controls (Enable Pixel Snapping checkbox and Pixel Size Override numeric input) to the Aseprite Extension Advanced Settings dialog ([local-ui-main.lua](file:///C:/Users/taksi/AppData/Roaming/Aseprite/extensions/extension-aseprite-generator/local-ui-main.lua))
+
 #### Changed
 - Optimized background removal preprocessor resolution to `1024x1024` for BiRefNet to achieve high-fidelity edges and cleaner background isolation
 - Updated background removal logic to use the highest resolution prediction layer (`outputs[-1]`) from the BiRefNet output stages
@@ -11,6 +17,10 @@
 
 #### Removed
 - Removed the Floyd-Steinberg dithering system entirely from image processing and API endpoints
+
+#### Optimized
+- Optimized RGB pixel resampling via packed uint32 1D unique value extraction, achieving a **6.13x speedup** (from 314ms to 51ms)
+- Optimized Alpha channel resampling using `np.bincount` majority voting, yielding a **1.46x speedup**
 
 ### [1.0.5] — 2026-06-22
 

@@ -22,6 +22,34 @@ warnings.filterwarnings("ignore", message=".*Cannot find a working triton instal
 log = logging.getLogger(__name__)
 
 
+def is_sdxl_model(model_name: Optional[str]) -> bool:
+    """ตรวจสอบว่าโมเดลเป็นประเภท SDXL หรือไม่"""
+    if not model_name:
+        return False
+    name_lower = model_name.lower()
+    # Check specific SDXL/Pony/Illustrious keywords
+    if any(kw in name_lower for kw in ("sdxl", "pony", "illustrious")):
+        return True
+    # Check for "xl" keyword but exclude "excel" to prevent false positives
+    if "xl" in name_lower and "excel" not in name_lower:
+        return True
+    return False
+
+
+def is_sdxl_lora(lora_name: Optional[str]) -> bool:
+    """ตรวจสอบว่า LoRA เป็นประเภท SDXL หรือไม่"""
+    if not lora_name:
+        return False
+    name_lower = lora_name.lower()
+    # Check specific SDXL/Pony/Illustrious/Shirosu keywords
+    if any(kw in name_lower for kw in ("sdxl", "pony", "illustrious", "shirosu")):
+        return True
+    # Check for "xl" keyword but exclude "excel"
+    if "xl" in name_lower and "excel" not in name_lower:
+        return True
+    return False
+
+
 class ModelManager:
     """จัดการการโหลดโมเดล Stable Diffusion, LoRA และ VRAM Optimization"""
 
@@ -340,7 +368,7 @@ class ModelManager:
 
             # 4. โหลดจาก disk / Hub
             log.info("Loading model: %s", model_name)
-            is_sdxl = "xl" in model_name.lower()
+            is_sdxl = is_sdxl_model(model_name)
             local_only = self.offline_mode
             precision = (
                 torch.bfloat16
@@ -584,7 +612,7 @@ class ModelManager:
         gen_params.update(kwargs)
 
         # ขนาด default ตามประเภทโมเดล
-        is_xl = self.current_model and "xl" in self.current_model.lower()
+        is_xl = is_sdxl_model(self.current_model)
         default_size = 1024 if is_xl else 512
         gen_params.setdefault("width", default_size)
         gen_params.setdefault("height", default_size)
@@ -602,12 +630,13 @@ class ModelManager:
             seed_int = -1
 
         if seed_int != -1:
-            generator.manual_seed(seed_int)
-            log.info("  Seed: %d (fixed)", seed_int)
+            used_seed = seed_int
+            generator.manual_seed(used_seed)
+            log.info("  Seed: %d (fixed)", used_seed)
         else:
-            random_seed = random.randint(0, 2**32 - 1)
-            generator.manual_seed(random_seed)
-            log.info("  Seed: %d (random)", random_seed)
+            used_seed = random.randint(0, 2**32 - 1)
+            generator.manual_seed(used_seed)
+            log.info("  Seed: %d (random)", used_seed)
 
         # เปิด VAE tiling เฉพาะภาพใหญ่ (>1024px) เพื่อป้องกัน OOM โดยไม่เพิ่ม overhead ภาพเล็ก
         gen_width = int(gen_params["width"])
@@ -652,4 +681,4 @@ class ModelManager:
             result = self.pipeline(**pipeline_kwargs)
 
         log.info("[OK] Image generation complete")
-        return result.images[0], generator.initial_seed()
+        return result.images[0], used_seed

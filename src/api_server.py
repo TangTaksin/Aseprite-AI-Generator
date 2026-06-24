@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from src.image_processing import ImageProcessor
-from src.models_manager import ModelManager
+from src.models_manager import ModelManager, is_sdxl_model, is_sdxl_lora
 
 # ─── Logging Setup ────────────────────────────────────────────────────────────
 import warnings
@@ -40,16 +40,10 @@ image_processor = ImageProcessor(device=model_manager.device)
 
 # ─── Helper Functions ─────────────────────────────────────────────────────────
 
-_SDXL_KEYWORDS = ("xl", "pony", "illustrious")
-_SDXL_LORA_KEYWORDS = ("xl", "pony", "illustrious", "shirosu")
-
-
 def _check_model_lora_compatibility(model_name: str, lora_name: str) -> Optional[str]:
     """ตรวจสอบความเข้ากันได้ของ Model และ LoRA (SD 1.5 / SDXL)"""
-    model_lower = model_name.lower()
-    lora_lower = lora_name.lower()
-    is_model_sdxl = any(kw in model_lower for kw in _SDXL_KEYWORDS)
-    is_lora_sdxl = any(kw in lora_lower for kw in _SDXL_LORA_KEYWORDS)
+    is_model_sdxl = is_sdxl_model(model_name)
+    is_lora_sdxl = is_sdxl_lora(lora_name)
     if is_model_sdxl != is_lora_sdxl:
         return "Model and LoRA incompatible! Please match versions (SD 1.5 / SDXL)."
     return None

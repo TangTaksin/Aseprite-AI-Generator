@@ -1,6 +1,6 @@
 import base64
 import logging
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import torch
@@ -18,14 +18,15 @@ class ImageProcessor:
     def __init__(self, device: str = "cuda", offline_mode: bool = False):
         self.device = device
         self.offline_mode = offline_mode
-        self.segmentation_model: Optional = None
-        self.segmentation_processor: Optional = None
+        self.segmentation_model: Optional[Any] = None
+        self.segmentation_processor: Optional[Any] = None
 
     def load_segmentation_model(self) -> bool:
         """Loads the BiRefNet model for background removal (Load Once, Keep Resident)."""
         if self.segmentation_model and self.segmentation_processor:
             # Model already loaded, ensure it's on the correct device
-            if self.segmentation_model.device != torch.device(self.device):
+            model_device = next(self.segmentation_model.parameters()).device
+            if model_device != torch.device(self.device):
                 self.segmentation_model.to(self.device)
             return True
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Local AI Generator for Aseprite
-Version 1.0.5
+Dynamic Versioning
 """
 
 import sys
@@ -11,10 +11,23 @@ import shutil
 import glob
 from pathlib import Path
 
+def get_version():
+    try:
+        version_file = Path(__file__).parent / "src" / "version.py"
+        if version_file.exists():
+            with open(version_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("__version__"):
+                        return line.split("=")[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return "1.0.6"
+
+__version__ = get_version()
 
 def print_banner():
     print("\n" + "=" * 60)
-    print("🎮 LOCAL AI GENERATOR FOR ASEPRITE v1.0.5")
+    print(f"🎮 LOCAL AI GENERATOR FOR ASEPRITE v{__version__}")
     print("=" * 60)
 
 

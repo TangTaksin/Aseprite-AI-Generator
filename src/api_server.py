@@ -12,6 +12,7 @@ from flask_cors import CORS
 
 from src.image_processing import ImageProcessor
 from src.models_manager import ModelManager, is_sdxl_model, is_sdxl_lora
+from src.version import __version__
 
 # ─── Logging Setup ────────────────────────────────────────────────────────────
 import warnings
@@ -173,7 +174,7 @@ def health_check() -> Any:
         "vram_used_gb": round(vram_used, 2),
         "vram_total_gb": round(vram_total, 2),
         "cached_models": list(model_manager.model_cache.keys()),
-        "version": "1.0.5",
+        "version": __version__,
     })
 
 
@@ -250,7 +251,7 @@ def offload_segmentation_route() -> Tuple[Any, int]:
 
 def main(default_model_to_load: Optional[str] = None, offline: bool = False) -> None:
     print("\n" + "=" * 60)
-    print("LOCAL AI GENERATOR SERVER v1.0.5")
+    print(f"LOCAL AI GENERATOR SERVER v{__version__}")
     print("=" * 60)
 
     os.makedirs("models", exist_ok=True)

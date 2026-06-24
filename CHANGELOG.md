@@ -2,6 +2,16 @@
 
 ## Python Server
 
+### [1.0.6] — 2026-06-25
+
+#### Changed
+- Optimized background removal preprocessor resolution to `1024x1024` for BiRefNet to achieve high-fidelity edges and cleaner background isolation
+- Updated background removal logic to use the highest resolution prediction layer (`outputs[-1]`) from the BiRefNet output stages
+- Integrated `remove_background_threshold` into the `/generate` endpoint to allow custom transparency thresholds
+
+#### Removed
+- Removed the Floyd-Steinberg dithering system entirely from image processing and API endpoints
+
 ### [1.0.5] — 2026-06-22
 
 #### Added

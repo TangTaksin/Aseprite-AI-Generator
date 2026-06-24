@@ -35,7 +35,7 @@ class ImageProcessor:
             model_name = "zhengpeng7/BiRefNet"
             self.segmentation_processor = transforms.Compose(
                 [
-                    transforms.Resize((352, 352), interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.Resize((1024, 1024), interpolation=transforms.InterpolationMode.BILINEAR),
                     transforms.ToTensor(),
                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                 ]
@@ -76,7 +76,7 @@ class ImageProcessor:
                 torch.cuda.empty_cache()
             log.info("BiRefNet offloaded to CPU")
 
-    def remove_background(self, pil_image: Image.Image) -> Image.Image:
+    def remove_background(self, pil_image: Image.Image, threshold: float = 0.5) -> Image.Image:
         """Removes the background of the image using BiRefNet."""
         if not self.load_segmentation_model():
             raise RuntimeError("Failed to load background removal model")
@@ -101,7 +101,7 @@ class ImageProcessor:
                 input_tensor = input_tensor.to(dtype=model_dtype)
 
                 outputs = self.segmentation_model(input_tensor)
-                logits = outputs[0]
+                logits = outputs[-1] if isinstance(outputs, (list, tuple)) else outputs
 
                 mask = F.interpolate(
                     logits,
@@ -110,7 +110,7 @@ class ImageProcessor:
                     align_corners=False,
                 )
                 mask = torch.sigmoid(mask).squeeze(0).squeeze(0)
-                binary_mask = (mask > 0.5).cpu().numpy().astype(np.uint8)
+                binary_mask = (mask > threshold).cpu().numpy().astype(np.uint8)
 
             mask_image = Image.fromarray(binary_mask * 255, mode="L")
             rgba_image = pil_image.convert("RGBA")
@@ -128,7 +128,6 @@ class ImageProcessor:
         image: Image.Image,
         target_size: Tuple[int, int] = (64, 64),
         colors: int = 16,
-        use_dithering: bool = False,
         alpha_threshold: int = 128,
         enhance_contrast: float = 1.0,
         sharpen_amount: float = 2.0,
@@ -172,9 +171,8 @@ class ImageProcessor:
         image = image.resize(target_size, Image.NEAREST)
 
         if colors > 0:
-            dither_mode = Image.FLOYDSTEINBERG if use_dithering else Image.NONE
             image = image.quantize(
-                colors=colors, method=Image.MEDIANCUT, dither=dither_mode
+                colors=colors, method=Image.MEDIANCUT, dither=Image.NONE
             ).convert("RGB")
 
         if alpha is not None:

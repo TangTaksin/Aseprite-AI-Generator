@@ -117,7 +117,8 @@ def generate() -> Tuple[Any, int]:
 
         # ลบพื้นหลัง
         if data.get("remove_background", False):
-            image = image_processor.remove_background(image)
+            bg_threshold = float(data.get("remove_background_threshold", 0.5))
+            image = image_processor.remove_background(image, threshold=bg_threshold)
             # Segmentation model remains resident in memory for performance
             # To manually offload, use the /offload_segmentation endpoint or call offload_segmentation_model() directly
 
@@ -125,11 +126,9 @@ def generate() -> Tuple[Any, int]:
         pixel_height = int(data.get("pixel_height", 64))
         colors = int(data.get("colors", 16))
 
-        use_dithering = bool(data.get("use_dithering", False))
-
         # ทำพิกเซลอาร์ต
         pixel_image = image_processor.process_for_pixel_art(
-            image, target_size=(pixel_width, pixel_height), colors=colors, use_dithering=use_dithering
+            image, target_size=(pixel_width, pixel_height), colors=colors
         )
 
         img_base64 = image_processor.image_to_base64(pixel_image)

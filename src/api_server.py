@@ -120,8 +120,8 @@ def generate() -> Tuple[Any, int]:
         if data.get("remove_background", False):
             bg_threshold = float(data.get("remove_background_threshold", 0.5))
             image = image_processor.remove_background(image, threshold=bg_threshold)
-            # Segmentation model remains resident in memory for performance
-            # To manually offload, use the /offload_segmentation endpoint or call offload_segmentation_model() directly
+            # Offload immediately to free VRAM as per project rules
+            image_processor.offload_segmentation_model()
 
         pixel_width = int(data.get("pixel_width", 64))
         pixel_height = int(data.get("pixel_height", 64))

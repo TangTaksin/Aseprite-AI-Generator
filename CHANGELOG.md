@@ -2,6 +2,11 @@
 
 ## Python Server
 
+### [1.0.7] — 2026-06-25
+
+#### Fixed
+- Fixed background removal memory residency to immediately offload BiRefNet from VRAM (`image_processor.offload_segmentation_model()`) after execution to comply with memory safety rules.
+
 ### [1.0.6] — 2026-06-25
 
 #### Added

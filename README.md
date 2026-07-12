@@ -2,6 +2,8 @@
 
 **Aseprite AI Generator (AAG)** is a bridge that connects local Generative AI (Stable Diffusion) directly with the Aseprite pixel art editor. It converts your text prompts into ready-to-use game sprites within seconds, running 100% locally on your machine's GPU.
 
+<img src="sample/Aseprite_Panel.png" alt="Aseprite Extension Panel" width="400">
+
 ---
 
 ## Key Highlights
@@ -21,7 +23,8 @@ Here are some examples of what you can generate using AAG, along with the prompt
 
 | Output Image | Prompt & Settings |
 | :---: | :--- |
-| <img src="sample/example_1.png" width="200" alt="Chibi Boa Profile"> | **Prompt:** `score_9, score_8_up, score_7_up, score_6_up, white background, 1girl, solo, portrait, looking at viewer, BREAK, Boa Hancock, large breasts, cleavage, off-shoulder dress, collarbone, long black hair, blue eyes, smug smile, gold earrings, one piece style, <lora:shirosu0011:1>, shirosu00, chibi` <br> **Negative Prompt:** `score_6, score_5, score_4, score_3, score_2, score_1, realistic, 3d, photorealistic, blurry, lowres, bad anatomy, bad hands, extra fingers, extra arms, extra legs, malformed limbs, deformed face, mutated hands, text, watermark, signature, duplicate, cropped, worst quality` <br> **Model:** [ponyDiffusionV6XL_v6StartWithThisOne.safetensors](https://civitai.com/models/257749/pony-diffusion-v6-xl) <br> **LoRA:** [Pony_shirosu0011.safetensors](https://civitai.com/models/493151/pixel-art-shirosu-artist-style-pony) (Strength: `1.0`) <br> **Settings:** Size: `64x64` \| Steps: `30` \| CFG: `7` \| Colors: `64` |
+| <img src="sample/example_1.png" width="200" alt="Chibi Boa Profile"> | **Prompt:** `score_9, score_8_up, score_7_up, score_6_up, white background, 1girl, solo, portrait, looking at viewer, BREAK, Boa Hancock, large breasts, cleavage, off-shoulder dress, collarbone, long black hair, blue eyes, smug smile, gold earrings, one piece style` <br> **Negative Prompt:** `score_6, score_5, score_4, score_3, score_2, score_1, realistic, 3d, photorealistic, blurry, lowres, bad anatomy, bad hands, extra fingers, extra arms, extra legs, malformed limbs, deformed face, mutated hands, text, watermark, signature, duplicate, cropped, worst quality` <br> **Model:** [ponyDiffusionV6XL_v6StartWithThisOne.safetensors](https://civitai.com/models/257749/pony-diffusion-v6-xl) <br> **LoRA:** [Pony_shirosu0011.safetensors](https://civitai.com/models/493151/pixel-art-shirosu-artist-style-pony) (Strength: `1.0`) <br> **Settings:** Size: `64x64` \| Steps: `30` \| CFG: `7` \| Colors: `64` |
+| <img src="sample/example_2.png" width="200" alt="Resin Art Example"> | **Prompt:** `score_9, score_8_up, score_7_up, score_6_up, white background, 1girl, solo, portrait, looking at viewer, BREAK, Boa Hancock, large breasts, cleavage, off-shoulder dress, collarbone, long black hair, blue eyes, smug smile, gold earrings, one piece style` <br> **Negative Prompt:** `score_6, score_5, score_4, score_3, score_2, score_1, realistic, 3d, photorealistic, blurry, lowres, bad anatomy, bad hands, extra fingers, extra arms, extra legs, malformed limbs, deformed face, mutated hands, text, watermark, signature, duplicate, cropped, worst quality` <br> **Model:** [hyphoria_v002_2.safetensors](https://civitai.com/models/1595884/hyphoria) <br> **LoRA:** [[Ilu] Pixel_Resin_x16_contrast_ep20.safetensors](https://civitai.com/models/1999880/pixelresin-x16-pixel-art) (Strength: `1.0`) <br> **Settings:** Size: `64x64` \| Steps: `30` \| CFG: `7` \| Colors: `32` |
 
 ---
 
@@ -29,28 +32,36 @@ Here are some examples of what you can generate using AAG, along with the prompt
 
 The project features a clean, modular design separating the backend server from the Aseprite frontend extension:
 
+### 1. Python Backend Server (Repository Root)
+```text
+├── sd_server.py              # Main entry point (calls src/api_server.py)
+├── startup_script.py         # Handles dependency installs & setup configuration
+├── Start Server.bat          # Batch script to auto-initialize and run the local API server
+├── Pack Extension.bat        # Packages active Lua extension source files from AppData
+├── requirements.txt          # Python dependencies list
+├── PixelAI.aseprite-extension # The packed installer file for Aseprite
+├── src/                      # Backend Source Code
+│   ├── api_server.py         # Flask REST API endpoints and router logic
+│   ├── models_manager.py     # Model loading, CPU memory caching, and GPU memory offload
+│   └── image_processing.py   # Background removal & pixel art quantization
+├── models/                   # Local Stable Diffusion checkpoint directory (.safetensors / .ckpt)
+├── loras/                    # Local LoRA weights folder for custom pixel art styles
+├── docs/                     # Documentation files (Thai language)
+└── sample/                   # Assets for documentation and examples
 ```
-├── Aseprite-AI-Generator (Python Backend Server)
-│   ├── sd_server.py           # Main entry point (proxies requests to src/api_server.py)
-│   ├── startup_script.py      # Interactive dependency installer and setup script
-│   ├── Start Server.bat       # Double-click script to run the local API server
-│   ├── requirements.txt       # List of Python dependencies
-│   ├── src/                   # Core modular backend code
-│   │   ├── api_server.py      # Flask REST API endpoints and router logic
-│   │   ├── models_manager.py  # Model loading, CPU memory caching, and GPU memory offload
-│   │   └── image_processing.py # Color quantization, filters, and BiRefNet segmentation
-│   ├── models/                # Local Stable Diffusion checkpoint directory (.safetensors / .ckpt)
-│   ├── loras/                 # LoRA weights folder for custom pixel art styles
-│   └── cache/                 # Hugging Face downloaded model cache
-│
-└── Aseprite Extension (Aseprite Extension files)
-    ├── package.json           # Aseprite extension configuration manifest
-    ├── main.lua               # Menu wrapper that registers the generator command
-    ├── local-ui-main.lua      # Main dialog GUI layout and canvas rendering script
-    └── libs/                  # Helper Lua scripts
-        ├── http-client.lua    # API requester for communication with python server
-        ├── json.lua           # Lua table JSON encoder/decoder
-        └── base64.lua         # Image string decoder
+
+### 2. Aseprite Extension (Lua Source)
+```text
+├── package.json              # Aseprite extension metadata manifest
+├── main.lua                  # Extension menu registration command
+├── local-ui-main.lua         # Main dialog UI layout and canvas cel rendering
+└── libs/                     # Shared Lua helper libraries
+    ├── subdialogs.lua        # Settings panels (Models, Advanced, Profiles)
+    ├── http-client.lua       # Communicates with Flask server
+    ├── api-service.lua       # API request wrapper and payload handler
+    ├── settings-store.lua    # Load and save profile settings presets
+    ├── json.lua              # JSON encoder/decoder
+    └── base64.lua            # Decodes base64 generated images from server
 ```
 
 ---
@@ -59,7 +70,7 @@ The project features a clean, modular design separating the backend server from 
 
 Before setting up the project, please ensure your system meets the following specifications:
 * **OS:** Windows 10 or 11
-* **Python:** 3.10.x - 3.11.x (Recommended)
+* **Python:** 3.10.x - 3.12.x (Recommended)
 * **GPU:** NVIDIA GPU with 8GB+ VRAM (e.g., RTX 30/40/50 Series with CUDA support)
 * **Storage:** 10GB+ of free space
 * **Aseprite:** v1.2.10 or newer
@@ -95,7 +106,11 @@ Place your Stable Diffusion base models (e.g., SD 1.5, SDXL, or Pony/Illustrious
 ```text
 models/
 ```
-* **Naming Guide:** If your model is based on **SDXL** (or Pony/Illustrious), ensure the filename contains **`xl`** (case-insensitive) in it (e.g., `hyphoria_xl.safetensors`). This allows the server to automatically detect and load the correct pipeline architecture.
+* **Auto Detection:** The server automatically detects whether a local model is SDXL or SD 1.5 using:
+  1. File size (files > 5.0 GB are treated as SDXL).
+  2. Embedded safetensors metadata (architecture / base model version).
+  3. Filename keywords (`sdxl`, `pony`, `illustrious`, `xl`, `hyphoria`, `noob`, `walnut`, `plantmilk`).
+  *Therefore, renaming your model files is no longer strictly required, but adding keywords like `_xl` is still recommended for organizational clarity.*
 * **Startup Selection:** After placing files in the `models/` folder, run `startup_script.py` (or double-click `Start Server.bat`). The script will automatically detect your local models and display them as options in the CLI menu.
 
 ### 2. Adding Custom LoRAs
@@ -103,6 +118,7 @@ Place your style LoRA adapters inside the `loras/` directory:
 ```text
 loras/
 ```
+* **Auto Detection:** Similar to checkpoints, LoRAs are auto-detected via embedded metadata, file size, or filename keywords (`sdxl`, `pony`, `illustrious`, `shirosu`, `ilu`, `noob`, `xl`).
 * **Aseprite Integration:** Once files are placed, restart the Python server. The backend API will automatically scan this folder and make your custom LoRAs available in the dropdown selection inside the Aseprite Extension interface.
 
 ---

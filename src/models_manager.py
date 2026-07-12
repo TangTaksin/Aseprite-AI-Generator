@@ -33,7 +33,42 @@ def is_sdxl_model(model_name: Optional[str]) -> bool:
     # Check for "xl" keyword but exclude "excel" to prevent false positives
     if "xl" in name_lower and "excel" not in name_lower:
         return True
+    # Check other common keywords for SDXL/Illustrious variants
+    if any(kw in name_lower for kw in ("noob", "hyphoria", "walnut", "plantmilk")):
+        return True
+
+    # ตรวจสอบเพิ่มเติมหากเป็นไฟล์โลคอล (อ่านขนาดไฟล์และ Metadata)
+    local_model_path = os.path.join("models", model_name)
+    if os.path.isfile(local_model_path):
+        # 1. ตรวจสอบจากขนาดไฟล์ (ถ้ามากกว่า 5.0 GB มักจะเป็น SDXL/Pony/Illustrious)
+        try:
+            file_size = os.path.getsize(local_model_path)
+            if file_size > 5.0 * 1024 * 1024 * 1024:
+                log.info("Detected SDXL model via file size (>5GB): %s", model_name)
+                return True
+        except Exception:
+            pass
+
+        # 2. ตรวจสอบจาก Metadata ของ Safetensors
+        if model_name.endswith(".safetensors"):
+            try:
+                from safetensors import safe_open
+                with safe_open(local_model_path, framework="pt", device="cpu") as f:
+                    metadata = f.metadata()
+                    if metadata:
+                        arch = metadata.get("modelspec.architecture", "").lower()
+                        if "xl" in arch or "sdxl" in arch:
+                            log.info("Detected SDXL model via metadata architecture (%s): %s", arch, model_name)
+                            return True
+                        base_ver = metadata.get("ss_base_model_version", "").lower()
+                        if "xl" in base_ver or "sdxl" in base_ver:
+                            log.info("Detected SDXL model via metadata base version (%s): %s", base_ver, model_name)
+                            return True
+            except Exception:
+                pass
+
     return False
+
 
 
 def is_sdxl_lora(lora_name: Optional[str]) -> bool:
@@ -42,11 +77,34 @@ def is_sdxl_lora(lora_name: Optional[str]) -> bool:
         return False
     name_lower = lora_name.lower()
     # Check specific SDXL/Pony/Illustrious/Shirosu keywords
-    if any(kw in name_lower for kw in ("sdxl", "pony", "illustrious", "shirosu")):
+    if any(kw in name_lower for kw in ("sdxl", "pony", "illustrious", "shirosu", "ilu", "noob")):
         return True
     # Check for "xl" keyword but exclude "excel"
     if "xl" in name_lower and "excel" not in name_lower:
         return True
+
+    # ตรวจสอบเพิ่มเติมหากเป็นไฟล์โลคอล (อ่าน Metadata ของ safetensors)
+    lora_path = lora_name
+    if not os.path.exists(lora_path):
+        lora_path = os.path.join("loras", lora_name)
+
+    if os.path.isfile(lora_path) and lora_path.endswith(".safetensors"):
+        try:
+            from safetensors import safe_open
+            with safe_open(lora_path, framework="pt", device="cpu") as f:
+                metadata = f.metadata()
+                if metadata:
+                    arch = metadata.get("modelspec.architecture", "").lower()
+                    if "xl" in arch or "sdxl" in arch:
+                        log.info("Detected SDXL LoRA via metadata architecture (%s): %s", arch, lora_name)
+                        return True
+                    base_ver = metadata.get("ss_base_model_version", "").lower()
+                    if "xl" in base_ver or "sdxl" in base_ver:
+                        log.info("Detected SDXL LoRA via metadata base version (%s): %s", base_ver, lora_name)
+                        return True
+        except Exception:
+            pass
+
     return False
 
 

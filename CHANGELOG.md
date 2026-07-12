@@ -2,6 +2,19 @@
 
 ## Python Server
 
+### [1.0.8] — 2026-07-12
+
+#### Added
+- Added automatic architecture detection for model checkpoints and LoRAs via embedded `.safetensors` metadata (`modelspec.architecture` and `ss_base_model_version`).
+- Added file size threshold (> 5.0 GB) detection to automatically identify local SDXL checkpoints.
+- Added support for new short-form and custom model/LoRA keywords (`hyphoria`, `noob`, `walnut`, `plantmilk`, `ilu`) in filename classification.
+- Added a second generation example (`example_2.png`) to `README.md` featuring the `hyphoria_v002_2` model with the `[Ilu] Pixel_Resin_x16_contrast_ep20` LoRA using 32 colors constraint.
+- Added a "Local Model & LoRA Compatibility Guide" section to `README.md` separating Illustrious XL and Pony Diffusion XL assets to prevent mis-matching.
+
+#### Fixed
+- Fixed checkpoint loading failures for models like `hyphoria_v002_2.safetensors` and `plantMilkModelSuite_walnut.safetensors` which previously failed to load because the system classified them as SD 1.5 due to missing "xl" keywords.
+- Fixed asset compatibility validation bypass/errors for Illustrious LoRAs using bracketed short tags like `[Ilu]` which caused false mismatch warnings when paired with SDXL checkpoints.
+
 ### [1.0.7] — 2026-06-25
 
 #### Fixed
